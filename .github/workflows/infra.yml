@@ -1,0 +1,83 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  TF_ROOT: ${{ github.workspace }}/terraform
+  TF_VAR_do_token: ${{ secrets.DO_TOKEN }}
+  TF_VAR_do_spaces_secret_key: ${{ secrets.DO_SPACES_SECRET_KEY }}
+  TF_VAR_do_spaces_access_key: ${{ secrets.DO_SPACES_ACCESS_KEY }}
+
+permissions:
+  id-token: write
+  contents: read
+  issues: write
+
+jobs:
+  terraform-plan:
+    runs-on: ubuntu-latest
+    environment: production
+    container:
+      image: registry.gitlab.com/gitlab-org/terraform-images/stable:latest
+    steps:
+      - uses: actions/checkout@v2
+      
+      - name: Check Current Working Directory
+        run: pwd
+
+      - name: List Workspace Directory Contents
+        run: ls -lah
+      
+      - name: Setup Environment Variables
+        run: |
+          echo "AWS_ACCESS_KEY_ID=${{ secrets.DO_SPACES_ACCESS_KEY }}" >> $GITHUB_ENV
+          echo "AWS_SECRET_ACCESS_KEY=${{ secrets.DO_SPACES_SECRET_KEY }}" >> $GITHUB_ENV
+      
+      - name: Cache Terraform modules
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.TF_ROOT }}/.terraform
+          key: terraform-production
+      
+      - name: Initialize Terraform
+        run: |
+          cd terraform
+          terraform init
+
+      - name: Validate Terraform Configuration
+        run: |
+          cd terraform
+          terraform validate
+          
+      - name: Create Terraform Plan
+        run: |
+          cd terraform
+          terraform plan
+          
+
+  terraform-apply:
+    needs: terraform-plan
+    runs-on: ubuntu-latest
+    environment: production
+    container:
+      image: registry.gitlab.com/gitlab-org/terraform-images/stable:latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Setup Environment Variables
+        run: |
+          echo "AWS_ACCESS_KEY_ID=${{ secrets.DO_SPACES_ACCESS_KEY }}" >> $GITHUB_ENV
+          echo "AWS_SECRET_ACCESS_KEY=${{ secrets.DO_SPACES_SECRET_KEY }}" >> $GITHUB_ENV
+      
+      - name: Initialize Terraform
+        run: |
+          cd terraform
+          terraform init
+
+      - name: Apply Terraform Changes
+        run: |
+            cd terraform
+            terraform apply -auto-approve
