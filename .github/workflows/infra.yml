@@ -19,9 +19,7 @@ permissions:
 jobs:
   terraform-plan:
     runs-on: ubuntu-latest
-    environment: production
-    container:
-      image: registry.gitlab.com/gitlab-org/terraform-images/stable:latest
+    environment: main
     steps:
       - uses: actions/checkout@v2
       
@@ -61,9 +59,7 @@ jobs:
   terraform-apply:
     needs: terraform-plan
     runs-on: ubuntu-latest
-    environment: production
-    container:
-      image: registry.gitlab.com/gitlab-org/terraform-images/stable:latest
+    environment: main
     steps:
       - uses: actions/checkout@v2
 
