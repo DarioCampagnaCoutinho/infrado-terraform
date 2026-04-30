@@ -26,7 +26,7 @@ provider "digitalocean" {
 module "ssh" {
   source     = "./modules/ssh"
   key_name   = "gitlab-deploy-key"
-  public_key = "ssh-rsa BBBBBBB6jkurjhghjyhbvff45tvccvbdtj,== email@email.com.br"
+  public_key = var.ssh_public_key
 }
 
 module "droplet" {
@@ -39,12 +39,12 @@ module "droplet" {
 }
 
 module "database" {
-  source       = "./modules/database"
-  cluster_name = "postgres-api-payment"
-  db_name      = "api-payment"
+  source         = "./modules/database"
+  cluster_name   = "postgres-api-payment"
+  db_name        = "api-payment"
   engine_version = "16"
-  size         = "db-s-1vcpu-2gb"
-  region       = "nyc3"
+  size           = "db-s-1vcpu-2gb"
+  region         = "nyc3"
 }
 
 module "kubernetes" {

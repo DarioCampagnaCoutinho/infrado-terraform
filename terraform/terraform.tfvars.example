@@ -1,0 +1,4 @@
+do_token             = "seu_token_do_digitalocean"
+do_spaces_access_key = "sua_access_key"
+do_spaces_secret_key = "sua_secret_key"
+ssh_public_key       = "ssh-rsa AAAA..."

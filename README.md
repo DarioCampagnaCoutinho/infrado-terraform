@@ -57,6 +57,7 @@ As variáveis declaradas em [terraform/variables.tf](terraform/variables.tf) sã
 - `do_token`: token da API da DigitalOcean
 - `do_spaces_access_key`: access key do Spaces
 - `do_spaces_secret_key`: secret key do Spaces
+- `ssh_public_key`: chave pública SSH que será registrada na DigitalOcean
 
 Exemplo em PowerShell:
 
@@ -64,6 +65,7 @@ Exemplo em PowerShell:
 $env:TF_VAR_do_token = "seu_token_do_digitalocean"
 $env:TF_VAR_do_spaces_access_key = "sua_access_key"
 $env:TF_VAR_do_spaces_secret_key = "sua_secret_key"
+$env:TF_VAR_ssh_public_key = "ssh-rsa AAAA..."
 
 $env:AWS_ACCESS_KEY_ID = $env:TF_VAR_do_spaces_access_key
 $env:AWS_SECRET_ACCESS_KEY = $env:TF_VAR_do_spaces_secret_key
@@ -108,10 +110,11 @@ Secrets esperados no GitHub Actions:
 - `DO_TOKEN`
 - `DO_SPACES_ACCESS_KEY`
 - `DO_SPACES_SECRET_KEY`
+- `SSH_PUBLIC_KEY`
 
 ## Observações sobre a configuração atual
 
-- A chave pública SSH está declarada diretamente em `terraform/main.tf`. Em ambiente real, o ideal é mover isso para variável ou secret management.
+- A chave pública SSH não fica mais hardcoded no código. Ela deve ser injetada por variável de ambiente (`TF_VAR_ssh_public_key`) ou por secret no CI.
 - O `README` documenta o comportamento atual do repositório; ele não assume módulos, ambientes ou workspaces que não existam no código.
 - Os módulos possuem `outputs`, mas não há `outputs.tf` na raiz expondo esses valores para consumo direto após `apply`.
 
