@@ -1,80 +1,90 @@
 name: CI
 
 on:
+  pull_request:
+    branches:
+      - main
   push:
     branches:
       - main
 
 env:
-  TF_ROOT: ${{ github.workspace }}/terraform
+  TF_VERSION: 1.16.4
+  TF_IN_AUTOMATION: "true"
+  TF_INPUT: "false"
   TF_VAR_do_token: ${{ secrets.DO_TOKEN }}
-  TF_VAR_do_spaces_secret_key: ${{ secrets.DO_SPACES_SECRET_KEY }}
-  TF_VAR_do_spaces_access_key: ${{ secrets.DO_SPACES_ACCESS_KEY }}
   TF_VAR_ssh_public_key: ${{ secrets.SSH_PUBLIC_KEY }}
+  # Backend S3 (DigitalOcean Spaces)
+  AWS_ACCESS_KEY_ID: ${{ secrets.DO_SPACES_ACCESS_KEY }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.DO_SPACES_SECRET_KEY }}
 
 permissions:
-  id-token: write
   contents: read
-  issues: write
+
+# Evita dois plan/apply simultâneos sobre o mesmo state
+concurrency:
+  group: terraform-main
+  cancel-in-progress: false
+
+defaults:
+  run:
+    working-directory: terraform
 
 jobs:
   terraform-plan:
     runs-on: ubuntu-latest
     environment: main
     steps:
-      - uses: actions/checkout@v2
-      
-      - name: Check Current Working Directory
-        run: pwd
+      - uses: actions/checkout@v4
 
-      - name: List Workspace Directory Contents
-        run: ls -lah
-      
-      - name: Setup Environment Variables
-        run: |
-          echo "AWS_ACCESS_KEY_ID=${{ secrets.DO_SPACES_ACCESS_KEY }}" >> $GITHUB_ENV
-          echo "AWS_SECRET_ACCESS_KEY=${{ secrets.DO_SPACES_SECRET_KEY }}" >> $GITHUB_ENV
-      
-      - name: Cache Terraform modules
-        uses: actions/cache@v4
+      - uses: hashicorp/setup-terraform@v3
         with:
-          path: ${{ env.TF_ROOT }}/.terraform
-          key: terraform-production
-      
-      - name: Initialize Terraform
-        run: |
-          cd terraform
-          terraform init
+          terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
 
-      - name: Validate Terraform Configuration
-        run: |
-          cd terraform
-          terraform validate
-          
-      - name: Create Terraform Plan
-        run: |
-          cd terraform
-          terraform plan
-          
+      - name: Format check
+        run: terraform fmt -check -recursive
 
+      - name: Init
+        run: terraform init
+
+      - name: Validate
+        run: terraform validate
+
+      - name: Plan
+        run: terraform plan -out=tfplan
+
+      - name: Upload plan
+        if: github.event_name == 'push'
+        uses: actions/upload-artifact@v4
+        with:
+          name: tfplan
+          path: terraform/tfplan
+          retention-days: 1
+
+  # Aplica exatamente o plano gerado acima. Para exigir aprovação manual,
+  # configure "Required reviewers" no environment "main" do GitHub.
   terraform-apply:
     needs: terraform-plan
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment: main
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
 
-      - name: Setup Environment Variables
-        run: |
-          echo "AWS_ACCESS_KEY_ID=${{ secrets.DO_SPACES_ACCESS_KEY }}" >> $GITHUB_ENV
-          echo "AWS_SECRET_ACCESS_KEY=${{ secrets.DO_SPACES_SECRET_KEY }}" >> $GITHUB_ENV
-      
-      - name: Initialize Terraform
-        run: |
-          cd terraform
-          terraform init
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
 
-      - name: Apply Terraform Changes
-        run: |
-            cd terraform
-            terraform apply -auto-approve
+      - name: Download plan
+        uses: actions/download-artifact@v4
+        with:
+          name: tfplan
+          path: terraform
+
+      - name: Init
+        run: terraform init
+
+      - name: Apply
+        run: terraform apply tfplan

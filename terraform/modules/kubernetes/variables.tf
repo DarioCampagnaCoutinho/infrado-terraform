@@ -55,3 +55,9 @@ variable "tags" {
   description = "List of tags to apply to the cluster"
   default     = []
 }
+
+variable "vpc_uuid" {
+  type        = string
+  description = "UUID da VPC. null usa a VPC default da região. ATENÇÃO: alterar em recurso existente força recriação."
+  default     = null
+}

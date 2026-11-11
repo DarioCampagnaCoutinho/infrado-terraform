@@ -13,3 +13,7 @@ output "port" {
 output "db_name" {
   value = digitalocean_database_db.this.name
 }
+
+output "private_host" {
+  value = digitalocean_database_cluster.this.private_host
+}

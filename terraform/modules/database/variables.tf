@@ -34,3 +34,18 @@ variable "node_count" {
   description = "Número de nós do cluster"
   default     = 1
 }
+
+variable "private_network_uuid" {
+  type        = string
+  description = "UUID da VPC do cluster. null usa a VPC default da região. ATENÇÃO: alterar em cluster existente força recriação."
+  default     = null
+}
+
+variable "trusted_sources" {
+  type = list(object({
+    type  = string
+    value = string
+  }))
+  description = "Origens liberadas no firewall do banco (type: ip_addr, droplet, k8s, tag, app). Lista vazia = sem firewall (aberto)."
+  default     = []
+}

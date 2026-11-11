@@ -5,10 +5,11 @@ locals {
 }
 
 resource "digitalocean_kubernetes_cluster" "this" {
-  name    = var.cluster_name
-  region  = var.region
-  version = local.k8s_version
-  tags    = var.tags
+  name     = var.cluster_name
+  region   = var.region
+  version  = local.k8s_version
+  tags     = var.tags
+  vpc_uuid = var.vpc_uuid
 
   node_pool {
     name       = var.node_pool_name
